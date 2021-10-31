@@ -1,5 +1,52 @@
-<mat-button-toggle-group name="fontStyle" appearance="standard">
-  <mat-button-toggle *ngFor="let r of ModRange; let i = index" [value]="i"
-                     (click)="setValue(i)"
+<mat-button-toggle-group appearance="standard" name="fontStyle">
+  <mat-button-toggle (click)="setValue(i)" *ngFor="let r of ModRange; let i = index"
+                     [value]="i"
                      class="select-button {{selection >= i ? 'mat-button-toggle-checked' : ''}}">{{i}}</mat-button-toggle>
 </mat-button-toggle-group>
+
+
+<mat-accordion class="mat-elevation-z12">
+  <mat-expansion-panel>
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        Limit stat mods
+      </mat-panel-title>
+      <mat-panel-description>
+        Set a limit for minor and major mods for each stat mod type.
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    <p style="max-width: 550px">
+      This is a feature for advanced users.
+      Limit the amount of minor and major mods you want the tool to use for each stat.
+      To disable stat mods for one type completely, set both to 0.
+    </p>
+      <table>
+        <tr>
+          <td></td>
+          <td>Minor Mods</td>
+          <td>Major Mods</td>
+        </tr>
+        <tr *ngFor="let stat of armorStats">
+          <td>{{ArmorStatNames[stat]}}</td>
+          <td>
+            <mat-button-toggle-group appearance="standard" name="fontStyle">
+              <mat-button-toggle (click)="setLimitation(stat, 0, i)" *ngFor="let r of ModRange; let i = index"
+                                 [class.mat-button-toggle-checked]="config_statModLimitation != null && config_statModLimitation[stat][0] >= i && selection >= i"
+                                 [disabled]="selection < i"
+                                 [value]="i"
+                                 class="select-button">{{i}}</mat-button-toggle>
+            </mat-button-toggle-group>
+          </td>
+          <td>
+            <mat-button-toggle-group appearance="standard" name="fontStyle">
+              <mat-button-toggle (click)="setLimitation(stat, 1, i)" *ngFor="let r of ModRange; let i = index"
+                                 [class.mat-button-toggle-checked]="config_statModLimitation != null && config_statModLimitation[stat][1] >= i && selection >= i"
+                                 [disabled]="selection < i"
+                                 [value]="i"
+                                 class="select-button">{{i}}</mat-button-toggle>
+            </mat-button-toggle-group>
+          </td>
+        </tr>
+      </table>
+  </mat-expansion-panel>
+</mat-accordion>

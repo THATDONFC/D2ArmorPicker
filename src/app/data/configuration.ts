@@ -33,6 +33,15 @@ export class Configuration {
   }
   maximumStatMods: number = 5;
 
+  statModLimitation: EnumDictionary<ArmorStat, [number, number]> = {
+    [ArmorStat.Mobility]: [5,5],
+    [ArmorStat.Resilience]: [5,5],
+    [ArmorStat.Recovery]: [5,5],
+    [ArmorStat.Discipline]: [5,5],
+    [ArmorStat.Intellect]: [5,5],
+    [ArmorStat.Strength]: [5,5]
+  }
+
   assumeLegendariesMasterworked = true;
   assumeExoticsMasterworked = true;
   assumeClassItemMasterworked = true;
@@ -92,6 +101,14 @@ export class Configuration {
         [ArmorStat.Discipline]: 1,
         [ArmorStat.Intellect]: 1,
         [ArmorStat.Strength]: 1
+      },
+      statModLimitation: {
+        [ArmorStat.Mobility]: [5,5],
+        [ArmorStat.Resilience]: [5,5],
+        [ArmorStat.Recovery]: [5,5],
+        [ArmorStat.Discipline]: [5,5],
+        [ArmorStat.Intellect]: [5,5],
+        [ArmorStat.Strength]: [5,5]
       }
     }
   }

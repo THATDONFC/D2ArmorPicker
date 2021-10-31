@@ -197,7 +197,7 @@ function handlePermutation(
     Math.ceil(Math.max(0, config.minimumStatTier[5] - stats[5] / 10)),
   ]
   const requiredModsTotal = requiredMods[0] + requiredMods[1] + requiredMods[2] + requiredMods[3] + requiredMods[4] + requiredMods[5]
-  const usedMods: number[] = []
+  let usedMods: number[] = []
   // only calculate mods if necessary. If we are already above the limit there's no reason to do the rest
   if (requiredModsTotal > config.maximumStatMods) {
     return null;
@@ -216,15 +216,42 @@ function handlePermutation(
         stats[statId] += 10
       }
     }
+
+    // force mod limits from configuration
+    // this means: first, convert all major mods to minor mods, if necessary
+    // then, look if there are more minor mods than allowed, return false;
+    // also, if more minor mods are there than allowed, return false too;
+
+    usedMods = usedMods.sort();
+
+    for (let statId = 0; statId < 6; statId++) {
+      const minorModId = (1 + (statId * 2)) as StatModifier
+      const majorModId = (1 + minorModId) as StatModifier
+      // convert major mods
+      let amountMajor = usedMods.filter(d => d == majorModId).length;
+      while (amountMajor > config.statModLimitation[statId as ArmorStat][1]) {
+        usedMods.splice(usedMods.indexOf(majorModId), 1)
+        usedMods.push(minorModId)
+        usedMods.push(minorModId)
+        amountMajor--;
+      }
+
+      const amountMinor = usedMods.filter(d => d == minorModId).length
+      if (amountMinor > config.statModLimitation[statId as ArmorStat][0])
+        return null;
+    }
+
+    if (usedMods.length > config.maximumStatMods)
+      return null;
   }
 
   // Check if we should add our results at all
   if (config.onlyShowResultsWithNoWastedStats) {
     // Definitely return when we encounter stats above 100
-    if (stats.filter(d => d>100).length > 0)
+    if (stats.filter(d => d > 100).length > 0)
       return null;
     // definitely return when we encounter stats that can not be fixed
-    if (stats.filter(d => d%5 != 0).length> 0)
+    if (stats.filter(d => d % 5 != 0).length > 0)
       return null;
 
     // now find out how many mods we need to fix our stats to 0 waste
@@ -241,9 +268,15 @@ function handlePermutation(
     for (let id = usedMods.length; id < config.maximumStatMods; id++) {
       let result = waste.filter(a => a[0] >= 5).filter(k => k[2] < 100).sort((a, b) => a[0] - b[0])[0]
       if (!result) break;
-      stats[result[1]] += 5
+      const minorModId = (1 + (result[1] * 2)) as StatModifier;
+      const minorModCount = usedMods.filter(d => d == minorModId).length
+      if (minorModCount < config.statModLimitation[result[1] as ArmorStat][0]) {
+        stats[result[1]] += 5
+        usedMods.push(1 + 2 * result[1])
+      } else {
+        id--;
+      }
       result[0] -= 5;
-      usedMods.push(1 + 2 * result[1])
     }
     const waste1 = getWaste(stats);
     if (waste1 > 0)
@@ -256,9 +289,13 @@ function handlePermutation(
   // get maximum possible stat and write them into the runtime
   // Get maximal possible stats and write them in the runtime variable
 
-  const freeMods = 10 * (config.maximumStatMods - usedMods.length)
   for (let n = 0; n < 6; n++) {
-    const maximum = stats[n] + freeMods;
+    const freeMods = (config.maximumStatMods - usedMods.length)
+    const usedMajorMods = Math.min(freeMods, config.statModLimitation[n as ArmorStat][1])
+    const usedMinorMods = Math.min(freeMods - usedMajorMods, config.statModLimitation[n as ArmorStat][0])
+    let freeSpace = 10 * usedMajorMods + 5 * usedMinorMods;
+
+    const maximum = stats[n] + freeSpace;
     if (maximum > runtime.maximumPossibleTiers[n])
       runtime.maximumPossibleTiers[n] = maximum
   }
@@ -266,25 +303,51 @@ function handlePermutation(
   // Get maximal possible stats and write them in the runtime variable
   // Calculate how many 100 stats we can achieve
   let openModSlots = config.maximumStatMods - usedMods.length
-  if (openModSlots > 0) {
-    var requiredStepsTo100 = [
-      Math.max(0, Math.ceil((100 - stats[0]) / 10)),
-      Math.max(0, Math.ceil((100 - stats[1]) / 10)),
-      Math.max(0, Math.ceil((100 - stats[2]) / 10)),
-      Math.max(0, Math.ceil((100 - stats[3]) / 10)),
-      Math.max(0, Math.ceil((100 - stats[4]) / 10)),
-      Math.max(0, Math.ceil((100 - stats[5]) / 10)),
-    ]
-    var bestIdx = [0, 1, 2, 3, 4, 5, 6].sort((a, b) => requiredStepsTo100[a] - requiredStepsTo100[b]);
+  if (true) { // TODO: remove this if
 
-    // if we can't even make 3x100, just stop right here
-    const requiredSteps3x100 = requiredStepsTo100[bestIdx[0]] + requiredStepsTo100[bestIdx[1]] + requiredStepsTo100[bestIdx[2]];
-    if (requiredSteps3x100 <= openModSlots) {
-      // in here we can find 3x100 and 4x100 stats
-      runtime.statCombo3x100.add((1 << bestIdx[0]) + (1 << bestIdx[1]) + (1 << bestIdx[2]));
-      // if 4x is also in range, add a 4x100 mod
-      if ((requiredSteps3x100 + requiredStepsTo100[bestIdx[3]]) <= openModSlots) {
-        runtime.statCombo4x100.add((1 << bestIdx[0]) + (1 << bestIdx[1]) + (1 << bestIdx[2]) + (1 << bestIdx[3]));
+    let possible100Stats = []
+
+    for (let n = 0; n < 6; n++) {
+      const armorStat = n as ArmorStat;
+      let value = Math.max(0, 100 - stats[armorStat])
+
+      if (value <= 0) {
+        possible100Stats.push([armorStat, 0])
+        continue;
+      }
+      else if (openModSlots == 0) continue;
+      const minorModId = (1 + (armorStat * 2)) as StatModifier;
+      const majorModId = 1 + minorModId as StatModifier;
+      const usedMajorMods = usedMods.filter(d => d == majorModId).length
+      const usedMinorMods = usedMods.filter(d => d == minorModId).length
+      const availableMajorMods = Math.min(openModSlots, config.statModLimitation[armorStat][1] - usedMajorMods)
+      const availableMinorMods = Math.min(openModSlots - availableMajorMods, config.statModLimitation[armorStat][0] - usedMinorMods)
+      if (value - 10 * availableMajorMods - 5 * availableMinorMods > 0)
+        continue;
+
+      let tmpUsedMods = 0;
+      for (let mj = 0; mj < availableMajorMods && value > 0; mj++, tmpUsedMods++) {
+        value -= 10;
+      }
+      for (let mi = 0; mi < availableMinorMods && value > 0; mi++, tmpUsedMods++) {
+        value -= 5;
+      }
+      possible100Stats.push([armorStat, tmpUsedMods])
+    }
+    if (possible100Stats.length >= 3) {
+      possible100Stats = possible100Stats.sort((a, b) => a[1] - b[1])
+      const requiredSteps3x100 = possible100Stats[0][1] + possible100Stats[1][1] + possible100Stats[2][1];
+      if (requiredSteps3x100 <= openModSlots) {
+        runtime.statCombo3x100.add((1 << possible100Stats[0][0]) + (1 << possible100Stats[1][0]) + (1 << possible100Stats[2][0]));
+
+        if (possible100Stats.length >= 4 && ((requiredSteps3x100 + possible100Stats[3][1]) <= openModSlots)) {
+          runtime.statCombo4x100.add(
+            (1 << possible100Stats[0][0])
+            + (1 << possible100Stats[1][0])
+            + (1 << possible100Stats[2][0])
+            + (1 << possible100Stats[3][0])
+          );
+        }
       }
     }
   }
@@ -292,6 +355,7 @@ function handlePermutation(
 
   // Add mods to reduce stat waste
   // TODO: here's still potential to speed up code
+  const freeMods = 10 * (config.maximumStatMods - usedMods.length)
   if (config.tryLimitWastedStats && freeMods > 0) {
 
     let waste = [
@@ -306,10 +370,16 @@ function handlePermutation(
     for (let id = usedMods.length; id < config.maximumStatMods; id++) {
       let result = waste.filter(a => a[0] >= 5).filter(k => k[2] < 100).sort((a, b) => a[0] - b[0])[0]
       if (!result) break;
-      stats[result[1]] += 5
+
+      const minorModId = (1 + (result[1] * 2)) as StatModifier;
+      const minorModCount = usedMods.filter(d => d == minorModId).length
+      if (minorModCount < config.statModLimitation[result[1] as ArmorStat][0]) {
+        stats[result[1]] += 5
+        usedMods.push(1 + 2 * result[1])
+      } else {
+        id--;
+      }
       result[0] -= 5;
-      usedMods.push(1 + 2 * result[1])
-      // console.log("FIXED", result, waste, usedMods.length, usedMods, getWaste(stats))
     }
   }
 
