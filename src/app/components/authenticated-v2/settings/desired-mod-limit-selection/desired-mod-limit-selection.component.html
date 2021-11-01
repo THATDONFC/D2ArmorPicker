@@ -4,9 +4,11 @@
                      class="select-button {{selection >= i ? 'mat-button-toggle-checked' : ''}}">{{i}}</mat-button-toggle>
 </mat-button-toggle-group>
 
+<br/>
+<br/>
 
-<mat-accordion class="mat-elevation-z12">
-  <mat-expansion-panel>
+<mat-accordion>
+  <mat-expansion-panel class="mat-elevation-z14">
     <mat-expansion-panel-header>
       <mat-panel-title>
         Limit stat mods
@@ -23,8 +25,9 @@
       <table>
         <tr>
           <td></td>
-          <td>Minor Mods</td>
-          <td>Major Mods</td>
+          <td style="padding-right: 6px;"><b>Minor Mods</b></td>
+          <td></td>
+          <td><b>Major Mods</b></td>
         </tr>
         <tr *ngFor="let stat of armorStats">
           <td>{{ArmorStatNames[stat]}}</td>
@@ -36,7 +39,7 @@
                                  [value]="i"
                                  class="select-button">{{i}}</mat-button-toggle>
             </mat-button-toggle-group>
-          </td>
+          </td><td></td>
           <td>
             <mat-button-toggle-group appearance="standard" name="fontStyle">
               <mat-button-toggle (click)="setLimitation(stat, 1, i)" *ngFor="let r of ModRange; let i = index"

@@ -14,7 +14,14 @@ export class DesiredModLimitSelectionComponent implements OnInit {
   readonly ModRange = new Array(MAXIMUM_STAT_MOD_AMOUNT + 1);
   selection: number = MAXIMUM_STAT_MOD_AMOUNT;
 
-  config_statModLimitation: EnumDictionary<ArmorStat, [number, number]> | null = null;
+  config_statModLimitation: EnumDictionary<ArmorStat, [number, number]> = {
+    [ArmorStat.Mobility]: [5, 5],
+    [ArmorStat.Resilience]: [5, 5],
+    [ArmorStat.Recovery]: [5, 5],
+    [ArmorStat.Discipline]: [5, 5],
+    [ArmorStat.Intellect]: [5, 5],
+    [ArmorStat.Strength]: [5, 5]
+  };
 
   constructor(public config: ConfigurationService) {
   }
